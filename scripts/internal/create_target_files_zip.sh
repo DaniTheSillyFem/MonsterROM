@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # [
-source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
+source "$SRC_DIR/scripts/utils/install_utils.sh" || exit 1
 
 ZIP_FILE_NAME="${TARGET_CODENAME}_${ROM_VERSION}-target_files.zip"
 while [ -f "$OUT_DIR/$ZIP_FILE_NAME" ]; do
@@ -104,33 +104,6 @@ GET_SUPER_GROUP_SIZE()
 
     echo "${!VAR}"
 }
-
-SIGN_IMAGE_WITH_AVB()
-{
-    local FILE="$1"
-
-    if ! avbtool info_image --image "$FILE" &> /dev/null; then
-        local PARTITION_NAME
-        PARTITION_NAME="$(basename "$FILE")"
-        PARTITION_NAME="${PARTITION_NAME//.img/}"
-
-        local PARTITION_SIZE
-        PARTITION_SIZE="TARGET_$(tr "[:lower:]" "[:upper:]" <<< "$PARTITION_NAME")_PARTITION_SIZE"
-        _CHECK_NON_EMPTY_PARAM "$PARTITION_SIZE" "${!PARTITION_SIZE//none/}" || exit 1
-
-        local CMD
-        CMD+="avbtool add_hash_footer "
-        CMD+="--image \"$FILE\" "
-        CMD+="--partition_size \"${!PARTITION_SIZE}\" "
-        CMD+="--partition_name \"$PARTITION_NAME\" "
-        CMD+="--hash_algorithm \"sha256\" "
-        CMD+="--algorithm \"SHA256_RSA4096\" "
-        CMD+="--key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\""
-
-        LOG "- Signing image with AVB"
-        EVAL "$CMD" || exit 1
-    fi
-}
 # ]
 
 [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
@@ -159,7 +132,7 @@ if [ -d "$WORK_DIR/kernel" ]; then
         LOG_STEP_IN "- Copying $f"
         EVAL "cp -a \"$WORK_DIR/kernel/$f\" \"$TMP_DIR/$f\"" || exit 1
         if ! $TARGET_DISABLE_AVB_SIGNING; then
-            SIGN_IMAGE_WITH_AVB "$TMP_DIR/$f"
+            SIGN_IMAGE_WITH_AVB "$TMP_DIR/$f" || exit 1
         fi
         LOG_STEP_OUT
     done
