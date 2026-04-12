@@ -7,9 +7,6 @@ source "$SRC_DIR/scripts/utils/install_utils.sh" || exit 1
 
 TMP_DIR="$OUT_DIR/target/$TARGET_CODENAME/zip"
 
-KERNEL_BINS="dtbo init_boot vendor_boot"
-PARTITIONS_LIST="system vendor product system_ext odm vendor_dlkm odm_dlkm system_dlkm"
-
 PRIVATE_KEY_PATH="$SRC_DIR/security/"
 PUBLIC_KEY_PATH="$SRC_DIR/security/"
 if $ROM_IS_OFFICIAL; then

@@ -3,6 +3,9 @@
 
 # [
 source "$SRC_DIR/scripts/utils/build_utils.sh" || return 1
+
+KERNEL_BINS="dtbo init_boot vendor_boot"
+PARTITIONS_LIST="system vendor product system_ext odm vendor_dlkm odm_dlkm system_dlkm"
 # ]
 
 # PRINT_ASSERTIONS
