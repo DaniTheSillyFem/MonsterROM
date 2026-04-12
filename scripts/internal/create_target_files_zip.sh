@@ -76,6 +76,7 @@ GENERATE_BUILD_INFO()
     {
         echo -n "device="
         [ "$(GET_PROP "system" "ro.unica.device")" ] && GET_PROP "system" "ro.unica.device" || echo "$TARGET_CODENAME"
+        echo "name=$TARGET_NAME"
         echo -n "version="
         [ "$(GET_PROP "system" "ro.unica.version")" ] && GET_PROP "system" "ro.unica.version" || echo "$ROM_VERSION"
         echo -n "timestamp="

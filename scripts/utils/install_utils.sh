@@ -79,6 +79,9 @@ PRINT_HEADER()
 
     local BUILD_INFO="$1"
 
+    local ROM_VERSION
+    local TARGET_NAME
+    local NAME
     local ONEUI_VERSION
     local MAJOR
     local MINOR
@@ -86,6 +89,8 @@ PRINT_HEADER()
     local SOURCE_FINGERPRINT
     local TARGET_FINGERPRINT
 
+    ROM_VERSION="$(grep "^version" <<< "$BUILD_INFO" | cut -d "=" -f 2 -s)"
+    TARGET_NAME="$(grep "^name" <<< "$BUILD_INFO" | cut -d "=" -f 2 -s)"
     ONEUI_VERSION="$(grep "^oneui_version" <<< "$BUILD_INFO" | cut -d "=" -f 2 -s)"
     MAJOR=$(bc -l <<< "scale=0; $ONEUI_VERSION / 10000")
     MINOR=$(bc -l <<< "scale=0; $ONEUI_VERSION % 10000 / 100")
