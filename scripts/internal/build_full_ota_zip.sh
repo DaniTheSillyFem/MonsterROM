@@ -228,6 +228,12 @@ EVAL "unzip -o \"$TARGET_ZIP\" -d \"$TMP_DIR\"" || exit 1
 BUILD_INFO="$(cat "$TMP_DIR/build_info.txt")"
 rm -f "$TMP_DIR/build_info.txt"
 
+TARGET_CODENAME="$(grep "^device" <<< "$BUILD_INFO" | cut -d "=" -f 2 -s)"
+if [ ! -d "$SRC_DIR/target/$DEVICE" ]; then
+    LOGE "Folder not found: target/$DEVICE"
+    exit 1
+fi
+
 LOG "- Generating dynamic_partitions_op_list"
 GENERATE_OP_LIST
 
