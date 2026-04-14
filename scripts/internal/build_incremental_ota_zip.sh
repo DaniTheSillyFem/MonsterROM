@@ -401,6 +401,29 @@ GENERATE_UPDATER_SCRIPT()
         echo    'ui_print(" ");'
     } > "$SCRIPT_FILE"
 }
+
+VERIFY_SOURCE_COMPATIBILITY()
+{
+    local SOURCE_DEVICE
+    local SOURCE_SPL
+    local TARGET_DEVICE
+    local TARGET_SPL
+
+    SOURCE_DEVICE="$(grep "^device" <<< "$SOURCE_BUILD_INFO" | cut -d "=" -f 2 -s)"
+    SOURCE_SPL="$(grep "^security_patch" <<< "$SOURCE_BUILD_INFO" | cut -d "=" -f 2 -s)"
+    TARGET_DEVICE="$(grep "^device" <<< "$TARGET_BUILD_INFO" | cut -d "=" -f 2 -s)"
+    TARGET_SPL="$(grep "^security_patch" <<< "$TARGET_BUILD_INFO" | cut -d "=" -f 2 -s)"
+
+    if [[ "$SOURCE_DEVICE" != "$TARGET_DEVICE" ]]; then
+        LOGE "Source device ($SOURCE_DEVICE) does not match target device ($TARGET_DEVICE)"
+        exit 1
+    fi
+
+    if [ "$(date --date "$SOURCE_SPL" "+%s")" -gt "$(date --date "$TARGET_SPL" "+%s")" ]; then
+        LOGE "Target security patch level ($TARGET_SPL) is older than source SPL ($SOURCE_SPL)"
+        exit 1
+    fi
+}
 # ]
 
 if [ "$#" != "3" ]; then
@@ -440,6 +463,8 @@ if [ ! -d "$SRC_DIR/target/$DEVICE" ]; then
     LOGE "Folder not found: target/$DEVICE"
     exit 1
 fi
+
+VERIFY_SOURCE_COMPATIBILITY
 
 LOG "- Generating dynamic_partitions_op_list"
 GENERATE_OP_LIST
