@@ -21,6 +21,22 @@ PUBLIC_KEY_PATH+=".x509.pem"
 
 trap 'rm -rf "$TMP_DIR"' EXIT INT
 
+CALCULATE_MIN_CACHE_SIZE()
+{
+    local MAX="0"
+    local VAL="0"
+
+    while IFS= read -r f; do
+        VAL="$(cat "$f")"
+        if [ "$VAL" -gt "$MAX" ]; then
+            MAX="$VAL"
+        fi
+        rm "$f"
+    done < <(find "$TMP_DIR" -maxdepth 1 -type f -name "*.max_stashed_size")
+
+    echo -n "$MAX"
+}
+
 # https://android.googlesource.com/platform/build/+/refs/tags/android-16.0.0_r4/tools/releasetools/common.py#4067
 GENERATE_OP_LIST()
 {
@@ -258,6 +274,14 @@ GENERATE_UPDATER_SCRIPT()
                 echo    "endif;"
             fi
         done
+
+        if [ "$(find "$TMP_DIR" -maxdepth 1 -type f -name "*.max_stashed_size" | wc -l)" -gt "0" ]; then
+            # https://android.googlesource.com/platform/build/+/refs/tags/android-16.0.0_r4/tools/releasetools/edify_generator.py#212
+            echo -n "apply_patch_space("
+            CALCULATE_MIN_CACHE_SIZE
+            echo -n ") || abort("
+            echo    '"E3006: Not enough free space on /cache to apply patches.");'
+        fi
 
         # https://android.googlesource.com/platform/build/+/refs/tags/android-16.0.0_r4/tools/releasetools/non_ab_ota.py#453
         echo -e "\n# ---- start making changes here ----\n"
