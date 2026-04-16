@@ -8,6 +8,48 @@ KERNEL_BINS="dt dtbo init_boot vendor_boot"
 PARTITIONS_LIST="system vendor product system_ext odm vendor_dlkm odm_dlkm system_dlkm"
 # ]
 
+# GET_DEVICE_FROM_MOUNTPOINT <mountpoint>
+# Returns the device path for the supplied mountpoint.
+GET_DEVICE_FROM_MOUNTPOINT()
+{
+    _CHECK_NON_EMPTY_PARAM "MOUNTPOINT" "$1" || return 1
+
+    local MOUNTPOINT="$1"
+    if [[ "$MOUNTPOINT" == "/dt" ]]; then
+        MOUNTPOINT="/dtb"
+    fi
+
+    local FSTAB_FILE="$SRC_DIR/target/$TARGET_CODENAME/installer/recovery.fstab"
+    if [ ! -f "$FSTAB_FILE" ]; then
+        if grep -q "TARGET_PLATFORM=" "$SRC_DIR/target/$TARGET_CODENAME/config.sh"; then
+            FSTAB_FILE="$SRC_DIR/platform/"
+            FSTAB_FILE+="$(grep "TARGET_PLATFORM=" "$SRC_DIR/target/$TARGET_CODENAME/config.sh" | cut -f 2 -d "=" | sed "s/\"//g")"
+            FSTAB_FILE+="/installer/recovery.fstab"
+        fi
+    fi
+    if [ ! -f "$FSTAB_FILE" ]; then
+        LOGW "File not found: target/$TARGET_CODENAME/installer/recovery.fstab"
+        return 1
+    fi
+
+    local FILESYSTEM
+    FILESYSTEM="$(grep -w "$MOUNTPOINT" "$FSTAB_FILE")"
+    FILESYSTEM="$(sed "/^#/d" <<< "$FILESYSTEM")"
+    FILESYSTEM="$(head -n 1 <<< "$FILESYSTEM")"
+    FILESYSTEM="$(cut -f 1 <<< "$FILESYSTEM" | cut -f 1 -d " ")"
+
+    if [ ! "$FILESYSTEM" ]; then
+        if [[ "$MOUNTPOINT" == "/system" ]]; then
+            GET_DEVICE_FROM_MOUNTPOINT "/"
+        else
+            LOGW "No entry for \"$MOUNTPOINT\" found in target fstab"
+            return 1
+        fi
+    fi
+
+    echo -n "\"$FILESYSTEM\""
+}
+
 # PRINT_ASSERTIONS <info>
 # Returns the assertions code text to be used in the updater-script file.
 PRINT_ASSERTIONS()

@@ -176,10 +176,6 @@ fi
 #   TARGET_OS_BUILD_SYSTEM_EXT_PARTITION
 #     If set to true, system_ext partition will be built.
 #
-#   TARGET_OS_BOOT_DEVICE_PATH
-#     String containing the path to the target device block devices.
-#     Defaults to "/dev/block/bootdevice/by-name".
-#
 #   [SOURCE/TARGET]_AUDIO_CONFIG_RECORDALIVE_LIB_VERSION
 #     Integer containing the device RecordAlive lib version.
 #     Defaults to "none".
@@ -457,7 +453,6 @@ fi
     GET_BUILD_VAR "TARGET_OS_SINGLE_SYSTEM_IMAGE"
     GET_BUILD_VAR "TARGET_OS_FILE_SYSTEM_TYPE" "erofs"
     GET_BUILD_VAR "TARGET_OS_BUILD_SYSTEM_EXT_PARTITION"
-    GET_BUILD_VAR "TARGET_OS_BOOT_DEVICE_PATH" "/dev/block/bootdevice/by-name"
     GET_BUILD_VAR "SOURCE_AUDIO_CONFIG_RECORDALIVE_LIB_VERSION" "none"
     GET_BUILD_VAR "TARGET_AUDIO_CONFIG_RECORDALIVE_LIB_VERSION" "none"
     GET_BUILD_VAR "SOURCE_AUDIO_SUPPORT_ACH_RINGTONE"

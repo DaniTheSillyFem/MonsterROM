@@ -379,16 +379,16 @@ GENERATE_UPDATER_SCRIPT()
                 echo    '");'
                 echo -n 'package_extract_file("'
                 echo -n "$b.img"
-                echo -n '", "'
-                echo -n "$TARGET_OS_BOOT_DEVICE_PATH/$b"
-                echo    '");'
+                echo -n '", '
+                GET_DEVICE_FROM_MOUNTPOINT "/$b"
+                echo    ");"
             fi
         done
         if [ -f "$TMP_DIR/boot.img" ]; then
             echo    'ui_print("Installing boot image...");'
-            echo -n 'package_extract_file("boot.img", "'
-            echo -n "$TARGET_OS_BOOT_DEVICE_PATH"
-            echo    '/boot");'
+            echo -n 'package_extract_file("boot.img", '
+            GET_DEVICE_FROM_MOUNTPOINT "/boot"
+            echo    ");"
         fi
 
         if [ -f "$SRC_DIR/target/$TARGET_CODENAME/installer/install-end.edify" ]; then
