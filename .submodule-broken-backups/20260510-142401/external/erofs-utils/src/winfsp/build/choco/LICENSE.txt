@@ -1,3 +1,0 @@
-From: https://github.com/winfsp/winfsp/blob/master/License.txt
-
-LICENSE

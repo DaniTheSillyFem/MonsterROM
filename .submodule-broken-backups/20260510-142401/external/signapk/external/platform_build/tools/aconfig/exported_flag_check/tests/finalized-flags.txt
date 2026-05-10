@@ -1,3 +1,0 @@
-//record_finalized_flags.test.not_enabled
-record_finalized_flags.test.bar
-record_finalized_flags.test.baz

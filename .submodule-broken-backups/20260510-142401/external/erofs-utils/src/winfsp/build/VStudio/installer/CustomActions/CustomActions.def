@@ -1,7 +1,0 @@
-EXPORTS
-    InstanceID
-    ServiceRunning
-    DeferredAction
-    InstallSymlinks
-    InstallJunctions
-    RemoveFiles

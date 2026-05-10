@@ -1,6 +1,0 @@
-version: 2.0.0
-apkFileName: testapp.apk
-doNotCompress:
-- assets/AllAssetBundles/Andriod/tx_1001_冰原1
-- assets/AllAssetBundles/Andriod/tx_1001_冰原1.manifest
-

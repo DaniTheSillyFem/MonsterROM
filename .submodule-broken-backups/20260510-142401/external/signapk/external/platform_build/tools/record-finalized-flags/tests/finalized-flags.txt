@@ -1,2 +1,0 @@
-record_finalized_flags.test.bar
-record_finalized_flags.test.baz
