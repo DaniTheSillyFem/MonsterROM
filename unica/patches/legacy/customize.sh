@@ -84,6 +84,28 @@ EXTRACT_KERNEL_IMAGE() {
     fi
 }
 
+DECOMPRESS_KERNEL_PAYLOAD() {
+    local FILE="$1"
+    local TYPE="$2"
+
+    case "$TYPE" in
+        "lz4")
+            if cat "$FILE" | lz4 -d > "$TMP_DIR/out/tmp" 2> /dev/null; then
+                EVAL "mv -f \"$TMP_DIR/out/tmp\" \"$FILE\""
+            else
+                rm -f "$TMP_DIR/out/tmp"
+            fi
+            ;;
+        "gzip")
+            if cat "$FILE" | gzip -d > "$TMP_DIR/out/tmp" 2> /dev/null; then
+                EVAL "mv -f \"$TMP_DIR/out/tmp\" \"$FILE\""
+            else
+                rm -f "$TMP_DIR/out/tmp"
+            fi
+            ;;
+    esac
+}
+
 EXTRACT_KERNEL_MODULES() {
     if [ -d "$TMP_DIR" ]; then
         EVAL "rm -rf \"$TMP_DIR\""
@@ -97,9 +119,9 @@ EXTRACT_KERNEL_MODULES() {
 
     while IFS= read -r f; do
         if [[ "$(READ_BYTES_AT "$f" "0" "4")" == "184c2102" ]]; then
-            EVAL "cat \"$f\" | lz4 -d > \"$TMP_DIR/out/tmp\" && mv -f \"$TMP_DIR/out/tmp\" \"$f\""
+            DECOMPRESS_KERNEL_PAYLOAD "$f" "lz4"
         elif [[ "$(READ_BYTES_AT "$f" "0" "2")" == "8b1f" ]]; then
-            EVAL "cat \"$f\" | gzip -d > \"$TMP_DIR/out/tmp\" && mv -f \"$TMP_DIR/out/tmp\" \"$f\""
+            DECOMPRESS_KERNEL_PAYLOAD "$f" "gzip"
         fi
     done < <(find "$TMP_DIR/out" -maxdepth 1 -type f -name "vendor_ramdisk*")
 }
@@ -165,8 +187,18 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "36" ]; then
             ! grep -q "ro.telephony.sim_slots.count" "$WORK_DIR/vendor/bin/secril_config_svc" && \
             ! grep -q -r "config_num_physical_slots" "$WORK_DIR/vendor/overlay"; then
         PATCHED=true
-        APPLY_PATCH "system" "system/framework/telephony-common.jar" \
-            "$MODPATH/ril/telephony-common.jar/0001-Backport-legacy-UiccController-code.patch"
+        DECODE_APK "system" "system/framework/telephony-common.jar"
+        UICC_CONTROLLER="$APKTOOL_DIR/system/framework/telephony-common.jar/smali/com/android/internal/telephony/uicc/UiccController.smali"
+
+        if grep -q -F "ro.vendor.api_level" "$UICC_CONTROLLER" && \
+                grep -q -F "Adjusting numPhysicalSlots for firstApiLevel" "$UICC_CONTROLLER"; then
+            LOG "\033[0;33m! Legacy UiccController code already present. Skipping\033[0m"
+        else
+            APPLY_PATCH "system" "system/framework/telephony-common.jar" \
+                "$MODPATH/ril/telephony-common.jar/0001-Backport-legacy-UiccController-code.patch"
+        fi
+
+        unset UICC_CONTROLLER
     fi
 fi
 
@@ -265,7 +297,7 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "35" ]; then
 fi
 
 # Support legacy usb_notify kernel drivers (pre-API 36)
-# https://github.com/salvogiangri/UN1CA/discussions/519
+# Legacy usb_notify behavior documented in the upstream porting discussion.
 # - Check for 'SKY_DEFAULT' to determine if newer usb_notify drivers are in place
 if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "36" ]; then
     VBOOT_MISSING=true
@@ -336,4 +368,4 @@ if [ -d "$TMP_DIR" ]; then
 fi
 
 unset PATCHED TARGET_FIRMWARE_PATH
-unset -f BACKPORT_SF_PROPS EXTRACT_KERNEL_IMAGE EXTRACT_KERNEL_MODULES
+unset -f BACKPORT_SF_PROPS EXTRACT_KERNEL_IMAGE EXTRACT_KERNEL_MODULES DECOMPRESS_KERNEL_PAYLOAD

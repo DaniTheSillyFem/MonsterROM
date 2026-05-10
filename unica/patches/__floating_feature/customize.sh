@@ -1,4 +1,4 @@
-# UN1CA floating_feature patch
+# MonsterROM-REBORN floating_feature patch
 # - Add deprecated features in the $DEPRECATED variable
 # - Add features to ignore in the $BLACKLIST variable
 # - Add default values for missing features in the $FALLBACK variable
@@ -138,7 +138,7 @@ APPLY_TARGET_FEATURE()
 
     # Step 1: iterate through work_dir floating_feature.xml
     while IFS= read -r l; do
-        if [ ! "$l" ] || [[ "$l" == *"xml"* ]] || [[ "$l" == *"SecFloatingFeatureSet"* ]]; then
+        if [ ! "$l" ] || [[ "$l" == *"xml"* ]] || [[ "$l" == *"SecFloatingFeatureSet"* ]] || [[ "$l" == *"<!--"* ]]; then
             continue
         fi
 
@@ -168,7 +168,7 @@ APPLY_TARGET_FEATURE()
 
     # Step 2: iterate through target floating_feature.xml
     while IFS= read -r l; do
-        if [ ! "$l" ] || [[ "$l" == *"xml"* ]] || [[ "$l" == *"SecFloatingFeatureSet"* ]]; then
+        if [ ! "$l" ] || [[ "$l" == *"xml"* ]] || [[ "$l" == *"SecFloatingFeatureSet"* ]] || [[ "$l" == *"<!--"* ]]; then
             continue
         fi
 

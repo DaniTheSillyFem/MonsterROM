@@ -1,0 +1,75 @@
+From 523cd5315e0748a40ad0febba4e6c472253a7097 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=C4=90o=C3=A0n=20Tr=E1=BA=A7n=20C=C3=B4ng=20Danh?=
+ <congdanhqx@gmail.com>
+Date: Sun, 1 Nov 2020 15:51:35 +0700
+Subject: [PATCH] adb: disable mDNS
+
+---
+ adb.cpp         | 15 ---------------
+ socket_spec.cpp | 24 +-----------------------
+ 2 files changed, 1 insertion(+), 38 deletions(-)
+
+diff --git a/adb.cpp b/adb.cpp
+index ae57b00..6321981 100644
+--- a/adb.cpp
++++ b/adb.cpp
+@@ -1253,21 +1253,6 @@ void adb_set_reject_kill_server(bool value) {
+ }
+ 
+ static bool handle_mdns_request(std::string_view service, int reply_fd) {
+-    if (!android::base::ConsumePrefix(&service, "mdns:")) {
+-        return false;
+-    }
+-
+-    if (service == "check") {
+-        std::string check = mdns_check();
+-        SendOkay(reply_fd, check);
+-        return true;
+-    }
+-    if (service == "services") {
+-        std::string services_list = mdns_list_discovered_services();
+-        SendOkay(reply_fd, services_list);
+-        return true;
+-    }
+-
+     return false;
+ }
+ 
+diff --git a/socket_spec.cpp b/socket_spec.cpp
+index 5053e36..b01cb5b 100644
+--- a/socket_spec.cpp
++++ b/socket_spec.cpp
+@@ -222,29 +222,7 @@ bool socket_spec_connect(unique_fd* fd, std::string_view address, int* port, std
+         if (tcp_host_is_local(hostname)) {
+             fd->reset(network_loopback_client(port_value, SOCK_STREAM, error));
+         } else {
+-#if ADB_HOST
+-            // Check if the address is an mdns service we can connect to.
+-            if (auto mdns_info = mdns_get_connect_service_info(std::string(address.substr(4)));
+-                mdns_info != std::nullopt) {
+-                fd->reset(network_connect(mdns_info->v4_address_string(), mdns_info->port,
+-                                          SOCK_STREAM, 0, error));
+-                if (fd->get() != -1) {
+-                    // TODO(joshuaduong): We still show the ip address for the serial. Change it to
+-                    // use the mdns instance name, so we can adjust to address changes on
+-                    // reconnects.
+-                    port_value = mdns_info->port;
+-                    if (serial) {
+-                        *serial = std::format("{}.{}", mdns_info->instance, mdns_info->service);
+-                    }
+-                }
+-            } else {
+-                fd->reset(network_connect(hostname, port_value, SOCK_STREAM, 0, error));
+-            }
+-#else
+-            // Disallow arbitrary connections in adbd.
+-            *error = "adbd does not support arbitrary tcp connections";
+-            return false;
+-#endif
++            fd->reset(network_connect(hostname, port_value, SOCK_STREAM, 0, error));
+         }
+ 
+         if (fd->get() > 0) {
+-- 
+2.53.0
+

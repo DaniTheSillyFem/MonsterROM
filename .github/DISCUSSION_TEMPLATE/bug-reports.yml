@@ -9,10 +9,10 @@ body:
         </p>
 
         Thank you for your interest in the project. To make it easier for us to help you, please fill any required information below.
-        Make sure not to submit a duplicate bug report, search for existing bug reports [here](https://github.com/salvogiangri/UN1CA/discussions/categories/bug-reports).
+        Make sure not to submit a duplicate bug report, search for existing bug reports [here](https://github.com/devcore94/MonsterROM-REBORN/discussions/categories/bug-reports).
   - type: input
     attributes:
-      label: "UN1CA version:"
+      label: "MonsterROM-REBORN version:"
       placeholder: 2.0.0-07d0046
     validations:
       required: true

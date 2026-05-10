@@ -1,15 +1,49 @@
 DECODE_APK "system" "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
 
 LOG "- Enabling navigation bar type settings step"
+SETUPWIZARD_APK_DIR="$APKTOOL_DIR/system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
+NAVBAR_STEP_CANDIDATES="$(find "$SETUPWIZARD_APK_DIR" -type f -name "*.smali" -exec grep -l -F "navigationbar_setting" {} + || true)"
+while IFS= read -r NAVBAR_STEP_PATH; do
+    [ "$NAVBAR_STEP_PATH" ] || continue
+    if grep -q "^\.method.*d(Landroid/content/Context;Z)Ljava/util/ArrayList;" "$NAVBAR_STEP_PATH"; then
+        NAVBAR_STEP_SMALI="${NAVBAR_STEP_PATH#$SETUPWIZARD_APK_DIR/}"
+        break
+    fi
+done <<< "$NAVBAR_STEP_CANDIDATES"
+
+if [ ! "$NAVBAR_STEP_SMALI" ]; then
+    ABORT "Could not find setup wizard navigation bar step smali"
+fi
+
 SMALI_PATCH "system" "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk" \
-    "smali/S2/f.smali" "replace" \
+    "$NAVBAR_STEP_SMALI" "replace" \
     "d(Landroid/content/Context;Z)Ljava/util/ArrayList;" \
     "navigationbar_setting" \
     "this_string_does_not_exist" \
     > /dev/null
+
+SETUPWIZARD_ACTIVITY_PATH="$(find "$SETUPWIZARD_APK_DIR" -type f -path "*/com/sec/android/app/SecSetupWizard/SecSetupWizardActivity.smali" | sort | head -n 1)"
+if [ ! "$SETUPWIZARD_ACTIVITY_PATH" ]; then
+    ABORT "Could not find setup wizard activity smali"
+fi
+SETUPWIZARD_ACTIVITY_SMALI="${SETUPWIZARD_ACTIVITY_PATH#$SETUPWIZARD_APK_DIR/}"
+while IFS= read -r LINE; do
+    if [[ "$LINE" == .method* ]]; then
+        NAVBAR_ACTIVITY_METHOD="${LINE##* }"
+    elif [[ "$LINE" == *"navigationbar_setting"* ]] && [ "$NAVBAR_ACTIVITY_METHOD" ]; then
+        break
+    elif [[ "$LINE" == ".end method"* ]]; then
+        NAVBAR_ACTIVITY_METHOD=""
+    fi
+done < "$SETUPWIZARD_ACTIVITY_PATH"
+
+if [ ! "$NAVBAR_ACTIVITY_METHOD" ]; then
+    ABORT "Could not find setup wizard navigation bar activity method"
+fi
+
 SMALI_PATCH "system" "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk" \
-    "smali/com/sec/android/app/SecSetupWizard/SecSetupWizardActivity.smali" "replace" \
-    "f(Ljava/lang/String;)Z" \
+    "$SETUPWIZARD_ACTIVITY_SMALI" "replace" \
+    "$NAVBAR_ACTIVITY_METHOD" \
     "navigationbar_setting" \
     "this_string_does_not_exist" \
     > /dev/null
@@ -45,4 +79,6 @@ while IFS= read -r f; do
     fi
 done < <(find "$MODPATH/SecSetupWizard_Global.apk" -type f)
 
-unset PATCH_INST CONTENT
+unset PATCH_INST CONTENT SETUPWIZARD_APK_DIR NAVBAR_STEP_PATH NAVBAR_STEP_SMALI \
+    NAVBAR_STEP_CANDIDATES SETUPWIZARD_ACTIVITY_SMALI SETUPWIZARD_ACTIVITY_PATH \
+    NAVBAR_ACTIVITY_METHOD LINE

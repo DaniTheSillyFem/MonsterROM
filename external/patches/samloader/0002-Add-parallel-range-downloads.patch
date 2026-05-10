@@ -1,0 +1,173 @@
+diff --git a/samloader/fusclient.py b/samloader/fusclient.py
+index 3774d65..d3665b2 100644
+--- a/samloader/fusclient.py
++++ b/samloader/fusclient.py
+@@ -33,16 +33,19 @@ class FUSClient:
+             self.sessid = req.cookies["JSESSIONID"]
+         req.raise_for_status()
+         return req.text
+-    def downloadfile(self, filename: str, start: int = 0) -> requests.Response:
++    def downloadfile(self, filename: str, start: int = 0, end: int = None) -> requests.Response:
+         """ Make a FUS cloud request to download a given file. """
+         # In a cloud request, we also need to pass the server nonce.
+         authv = 'FUS nonce="' + self.encnonce + '", signature="' + self.auth \
+             + '", nc="", type="", realm="", newauth="1"'
+         headers = {"Authorization": authv, "User-Agent": "Kies2.0_FUS"}
+-        if start > 0:
+-            headers["Range"] = "bytes={}-".format(start)
++        if start > 0 or end is not None:
++            if end is None:
++                headers["Range"] = "bytes={}-".format(start)
++            else:
++                headers["Range"] = "bytes={}-{}".format(start, end)
+         req = requests.get("http://cloud-neofussvr.samsungmobile.com/NF_DownloadBinaryForMass.do",
+                            params="file=" + filename, headers=headers, stream=True)
+-        log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
++        log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n End Byte: {end}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
+         req.raise_for_status()
+         return req
+diff --git a/samloader/main.py b/samloader/main.py
+index 9e71759..0aeee3b 100644
+--- a/samloader/main.py
++++ b/samloader/main.py
+@@ -4,9 +4,11 @@
+ import argparse
+ import os
+ import base64
++import threading
+ import xml.etree.ElementTree as ET
+ import datetime
+ from tqdm import tqdm
++from concurrent.futures import ThreadPoolExecutor, as_completed
+ 
+ from . import request
+ from . import crypt
+@@ -29,6 +31,7 @@ def main():
+     dload.add_argument("-R", "--resume", help="resume an unfinished download", action="store_true")
+     dload.add_argument("-M", "--show-md5", help="print the expected MD5 hash of the downloaded file", action="store_true")
+     dload.add_argument("-D", "--do-decrypt", help="auto-decrypt the downloaded file after downloading", action="store_true")
++    dload.add_argument("-j", "--jobs", type=int, default=int(os.environ.get("SAMLOADER_DOWNLOAD_JOBS", "1")), help="parallel ranged download connections")
+     dload_out = dload.add_mutually_exclusive_group(required=True)
+     dload_out.add_argument("-O", "--out-dir", help="output the server filename to the specified directory")
+     dload_out.add_argument("-o", "--out-file", help="output to the specified file")
+@@ -85,6 +88,8 @@ def download(args):
+     else:
+         print("Downloading", filename)
+         log_to_file(f"Downloading: {filename}")
++    if args.jobs < 1:
++        raise Exception("download jobs must be greater than zero")
+     dloffset = os.stat(out).st_size if args.resume else 0
+     if dloffset == size:
+         print("already downloaded!")
+@@ -94,35 +99,102 @@ def download(args):
+             # Auto decrypt
+             auto_decrypt(args, out, filename)
+         return
+-    fd = open(out, "ab" if args.resume else "wb")
+     initdownload(client, filename)
+-    r = client.downloadfile(path+filename, dloffset)
++
++    if args.jobs > 1 and not args.resume:
++        downloadfile_parallel(client, path+filename, out, size, args.jobs)
++    else:
++        downloadfile_single(client, path+filename, out, size, dloffset, args)
++
++    log_to_file("Download completed.")
++    # Auto decrypt
++    auto_decrypt(args, out, filename)
++
++def downloadfile_single(client, filename, out, size, offset, args):
++    fd = open(out, "ab" if args.resume else "wb")
++    r = client.downloadfile(filename, offset)
+     if args.show_md5 and "Content-MD5" in r.headers:
+         print("MD5:", base64.b64decode(r.headers["Content-MD5"]).hex())
+ 
+     log_interval = size // 10  # Log every 10%
+-    progress = dloffset
++    progress = offset
+ 
+     # Download and log progress
+-    with tqdm(total=size, initial=dloffset, unit="B", unit_scale=True) as pbar:
++    with tqdm(total=size, initial=offset, unit="B", unit_scale=True) as pbar:
+         for chunk in r.iter_content(chunk_size=0x10000):
+             if chunk:
+                 fd.write(chunk)
+                 fd.flush()
+                 pbar.update(len(chunk))
+-                
++
+                 # Update progress
+                 progress += len(chunk)
+-                
++
+                 # Check if it's time to log the progress
+                 if progress >= log_interval:
+                     log_to_file(f"Download progress: {progress / (1024**2):.2f} MB / {size / (1024**2):.2f} MB")
+                     log_interval += size // 10
+ 
+     fd.close()
+-    log_to_file("Download completed.")
+-    # Auto decrypt
+-    auto_decrypt(args, out, filename)
++
++def downloadfile_parallel(client, filename, out, size, jobs):
++    jobs = max(1, min(jobs, size))
++    chunk_size = int(os.environ.get("SAMLOADER_CHUNK_SIZE", str(128 * 1024 * 1024)))
++    chunk_size = max(0x100000, chunk_size)
++    part_dir = out + ".parts"
++    os.makedirs(part_dir, exist_ok=True)
++
++    tasks = []
++    parts = []
++    initial = 0
++    index = 0
++    for start in range(0, size, chunk_size):
++        end = min(size - 1, start + chunk_size - 1)
++        part_file = os.path.join(part_dir, "{:06d}.part".format(index))
++        expected = end - start + 1
++        existing = os.path.getsize(part_file) if os.path.isfile(part_file) else 0
++        if existing > expected:
++            existing = 0
++        parts.append((part_file, expected))
++        initial += existing
++        if existing < expected:
++            tasks.append((start, end, part_file, existing))
++        index += 1
++
++    lock = threading.Lock()
++    with tqdm(total=size, initial=initial, unit="B", unit_scale=True) as pbar:
++        with ThreadPoolExecutor(max_workers=jobs) as executor:
++            futures = [
++                executor.submit(_download_part, client, filename, start, end, part_file, existing, pbar, lock)
++                for start, end, part_file, existing in tasks
++            ]
++            for future in as_completed(futures):
++                future.result()
++
++    with open(out, "wb") as outf:
++        for part_file, expected in parts:
++            if not os.path.isfile(part_file) or os.path.getsize(part_file) != expected:
++                raise Exception("parallel download produced an incomplete part: {}".format(part_file))
++            with open(part_file, "rb") as part:
++                while True:
++                    chunk = part.read(0x100000)
++                    if not chunk:
++                        break
++                    outf.write(chunk)
++            os.remove(part_file)
++    os.rmdir(part_dir)
++
++def _download_part(client, filename, start, end, part_file, existing, pbar, lock):
++    offset = start + existing
++    response = client.downloadfile(filename, offset, end)
++    if response.status_code != 206:
++        raise Exception("server ignored ranged download request")
++    with open(part_file, "ab" if existing else "wb") as fd:
++        for chunk in response.iter_content(chunk_size=0x100000):
++            if chunk:
++                fd.write(chunk)
++                with lock:
++                    pbar.update(len(chunk))
+ 
+ def imei_parser(args):
+     if args.dev_imei:

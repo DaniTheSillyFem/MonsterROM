@@ -73,7 +73,7 @@ if [[ "$SOURCE_EXTRA_FIRMWARES" != "SM-A346"* ]]; then
     exit 1
 fi
 
-# UN1CA: this patch is not complete! It relies on the whole build system and modules to produce a working
+# MonsterROM-REBORN: this patch is not complete! It relies on the whole build system and modules to produce a working
 # MediaTek-compatible image.
 
 IFS=':' read -a SOURCE_EXTRA_FIRMWARES <<< "$SOURCE_EXTRA_FIRMWARES"

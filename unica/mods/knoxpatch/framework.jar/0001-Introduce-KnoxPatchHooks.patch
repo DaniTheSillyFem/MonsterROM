@@ -3,65 +3,11 @@ From: Salvo Giangreco <giangrecosalvo9@gmail.com>
 Date: Mon, 6 Oct 2025 00:49:32 +0200
 Subject: [PATCH] Introduce KnoxPatchHooks
 
-UN1CA: this patch is not complete! Please check unica/mods/knoxpatch/customize.sh for more info.
 ---
- .../android/os/SystemProperties.smali         |  26 +-
  .../io/mesalabs/unica/KnoxPatchHooks.smali    | 269 ++++++++++++++++++
- 2 files changed, 289 insertions(+), 6 deletions(-)
+ 1 file changed, 269 insertions(+)
  create mode 100644 smali_classes6/io/mesalabs/unica/KnoxPatchHooks.smali
 
-diff --git a/smali_classes3/android/os/SystemProperties.smali b/smali_classes3/android/os/SystemProperties.smali
-index 3af84b7b..09f83663 100644
---- a/smali_classes3/android/os/SystemProperties.smali
-+++ b/smali_classes3/android/os/SystemProperties.smali
-@@ -373,27 +373,41 @@
- .end method
- 
- .method public static whitelist get(Ljava/lang/String;)Ljava/lang/String;
--    .locals 0
-+    .locals 1
-     .annotation runtime Landroid/annotation/SystemApi;
-     .end annotation
- 
-+    invoke-static {p0}, Lio/mesalabs/unica/KnoxPatchHooks;->onSystemPropertiesGet(Ljava/lang/String;)Ljava/lang/String;
-+
-+    move-result-object v0
-+
-+    if-nez v0, :cond_0
-+
-     invoke-static {p0}, Landroid/os/SystemProperties;->native_get(Ljava/lang/String;)Ljava/lang/String;
- 
--    move-result-object p0
-+    move-result-object v0
- 
--    return-object p0
-+    :cond_0
-+    return-object v0
- .end method
- 
- .method public static whitelist get(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
--    .locals 0
-+    .locals 1
-     .annotation runtime Landroid/annotation/SystemApi;
-     .end annotation
- 
-+    invoke-static {p0}, Lio/mesalabs/unica/KnoxPatchHooks;->onSystemPropertiesGet(Ljava/lang/String;)Ljava/lang/String;
-+
-+    move-result-object v0
-+
-+    if-nez v0, :cond_0
-+
-     invoke-static {p0, p1}, Landroid/os/SystemProperties;->native_get(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
- 
--    move-result-object p0
-+    move-result-object v0
- 
--    return-object p0
-+    :cond_0
-+    return-object v0
- .end method
- 
- .method public static whitelist getBoolean(Ljava/lang/String;Z)Z
 diff --git a/smali_classes6/io/mesalabs/unica/KnoxPatchHooks.smali b/smali_classes6/io/mesalabs/unica/KnoxPatchHooks.smali
 new file mode 100644
 index 00000000..8b68148a
@@ -339,4 +285,3 @@ index 00000000..8b68148a
 +.end method
 -- 
 2.51.0
-

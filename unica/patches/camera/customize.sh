@@ -42,6 +42,16 @@ else
     _LOG "File not found: $SRC_DIR/target/$TARGET_CODENAME/camera/camera-feature.xml"
 fi
 
+LOG_STEP_IN "- Adding cameramodes"
+CAMERA_CONFIG_VENDOR_LIB_INFO="$(GET_FLOATING_FEATURE_CONFIG "$FW_DIR/$SOURCE_FIRMWARE_PATH/system/system/etc/floating_feature.xml" "SEC_FLOATING_FEATURE_CAMERA_CONFIG_VENDOR_LIB_INFO")"
+if [ "$CAMERA_CONFIG_VENDOR_LIB_INFO" ]; then
+    SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_CAMERA_CONFIG_VENDOR_LIB_INFO" "$CAMERA_CONFIG_VENDOR_LIB_INFO"
+else
+    ABORT "SEC_FLOATING_FEATURE_CAMERA_CONFIG_VENDOR_LIB_INFO config not found in source firmware floating_feature.xml"
+fi
+unset CAMERA_CONFIG_VENDOR_LIB_INFO
+LOG_STEP_OUT
+
 LOG_STEP_IN
 if grep -q "DURING_SMARTVIEW" "$WORK_DIR/system/system/cameradata/camera-feature.xml" 2> /dev/null; then
     LOG "- Removing Smart View limitations flags"
@@ -302,6 +312,37 @@ if [ -f "$WORK_DIR/system/system/lib64/libImageSegmenter_v1.camera.samsung.so" ]
     DELETE_FROM_WORK_DIR "system" "system/lib64/libImageSegmenter_v1.camera.samsung.so"
 fi
 
+# Patch libvpl unload path for One UI 8.5 camera stability
+PATCH_LIBVPL_UNLOAD()
+{
+    local FILE="$1"
+    local FROM="$2"
+    local TO="$3"
+
+    if [ ! -f "$FILE" ]; then
+        LOGW "File not found: ${FILE//$WORK_DIR/}"
+        return 0
+    fi
+
+    if xxd -p -c 0 "$FILE" | grep -q "$TO"; then
+        LOG "- libvpl unload already patched in ${FILE//$WORK_DIR/}"
+    elif xxd -p -c 0 "$FILE" | grep -q "$FROM"; then
+        HEX_PATCH "$FILE" "$FROM" "$TO"
+    else
+        _LOG "No known libvpl unload patch available for ${FILE//$WORK_DIR/}"
+    fi
+}
+
+LOG_STEP_IN "- Patching libvpl unload"
+PATCH_LIBVPL_UNLOAD "$WORK_DIR/vendor/lib/libvpl.so" \
+    "b0b524490420244a79447a4424f016ee224c01207c44d4e8" \
+    "704700bf0420244a79447a4424f016ee224c01207c44d4e8"
+PATCH_LIBVPL_UNLOAD "$WORK_DIR/vendor/lib64/libvpl.so" \
+    "fd7bbca9f70b00f9f65702a9f44f03a9fd03009141fefff0" \
+    "c0035fd6f70b00f9f65702a9f44f03a9fd03009141fefff0"
+LOG_STEP_OUT
+unset -f PATCH_LIBVPL_UNLOAD
+
 # Fix object capture
 if [[ "$TARGET_OS_SINGLE_SYSTEM_IMAGE" == "essi" ]]; then
     if {
@@ -312,15 +353,15 @@ if [[ "$TARGET_OS_SINGLE_SYSTEM_IMAGE" == "essi" ]]; then
             [[ "$(GET_PROP "vendor" "ro.product.vendor.device")" != "a56"* ]]
     }; then
         HEX_PATCH "$WORK_DIR/system/system/lib64/libobjectcapture_jni.arcsoft.so" \
-            "e503162a47020094e022009121008052e203162a" "8500805247020094e02200912100805282008052"
+            "fd7bbaa9fc6f01a9fd030091fa6702a9f85f03a9" "8500805247020094e02200912100805282008052"
     elif ! [[ "$(GET_PROP "system" "ro.product.device")" =~ r0|g0|b0 ]] && \
             [[ "$(GET_PROP "vendor" "ro.product.vendor.device")" =~ r0|g0|b0 ]]; then
         HEX_PATCH "$WORK_DIR/system/system/lib64/libobjectcapture_jni.arcsoft.so" \
-            "e503162a47020094e022009121008052e203162a" "4500805247020094e02200912100805242008052"
+            "fd7bbaa9fc6f01a9fd030091fa6702a9f85f03a9" "4500805247020094e02200912100805242008052"
     elif [[ "$(GET_PROP "system" "ro.product.device")" != "a56"* ]] && \
             [[ "$(GET_PROP "vendor" "ro.product.vendor.device")" == "a56"* ]]; then
         HEX_PATCH "$WORK_DIR/system/system/lib64/libobjectcapture_jni.arcsoft.so" \
-            "e503162a47020094e022009121008052e203162a" "c500805247020094e022009121008052c2008052"
+            "fd7bbaa9fc6f01a9fd030091fa6702a9f85f03a9" "c500805247020094e022009121008052c2008052"
     fi
 fi
 
@@ -342,8 +383,8 @@ if [ -f "$WORK_DIR/vendor/lib64/libDualCamBokehCapture.camera.samsung.so" ]; the
         HEX_PATCH "$WORK_DIR/vendor/lib64/liblivefocus_preview_engine.so" \
             "726f2e70726f647563742e6e616d6500" "726f2e756e6963612e63616d65726100"
         LOG "- Patching /system/system/etc/selinux/plat_property_contexts"
-        EVAL "echo \"ro.unica.camera u:object_r:build_prop:s0 exact string\"  >> \"$WORK_DIR/system/system/etc/selinux/plat_property_contexts\""
-        SET_PROP "system" "ro.unica.camera" "$(GET_PROP "$FW_DIR/$TARGET_FIRMWARE_PATH/system/system/build.prop" "ro.product.system.name")"
+        EVAL "echo \"ro.monsterrom.camera u:object_r:build_prop:s0 exact string\"  >> \"$WORK_DIR/system/system/etc/selinux/plat_property_contexts\""
+        SET_PROP "system" "ro.monsterrom.camera" "$(GET_PROP "$FW_DIR/$TARGET_FIRMWARE_PATH/system/system/build.prop" "ro.product.system.name")"
     fi
 fi
 

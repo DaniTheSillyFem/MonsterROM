@@ -4,22 +4,31 @@ if [[ "$SOURCE_BOARD_API_LEVEL" == "$TARGET_BOARD_API_LEVEL" ]]; then
 fi
 
 # [
+TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$TARGET_FIRMWARE")"
+
+TARGET_FIRMWARE_HAS_SYSTEM_EXT_FILE()
+{
+    local FILE="$1"
+
+    [ -e "$FW_DIR/$TARGET_FIRMWARE_PATH/system_ext/$FILE" ] || \
+        [ -e "$FW_DIR/$TARGET_FIRMWARE_PATH/system/system/system_ext/$FILE" ] || \
+        [ -e "$FW_DIR/$TARGET_FIRMWARE_PATH/system/system_ext/$FILE" ]
+}
+
 ADD_TARGET_VNDK_APEX() {
+    local APEX="apex/com.android.vndk.v$TARGET_BOARD_API_LEVEL.apex"
+
+    if TARGET_FIRMWARE_HAS_SYSTEM_EXT_FILE "$APEX"; then
+        ADD_TO_WORK_DIR "$TARGET_FIRMWARE" "system_ext" "$APEX" 0 0 644 "u:object_r:system_file:s0"
+        return $?
+    fi
+
     case "$TARGET_BOARD_API_LEVEL" in
         "30")
             ADD_TO_WORK_DIR "a73xqxx" "system_ext" "apex/com.android.vndk.v30.apex" 0 0 644 "u:object_r:system_file:s0"
             ;;
-        "31")
-            ADD_TO_WORK_DIR "b0qxxx" "system_ext" "apex/com.android.vndk.v31.apex" 0 0 644 "u:object_r:system_file:s0"
-            ;;
-        "32")
-            ADD_TO_WORK_DIR "b4qxxx" "system_ext" "apex/com.android.vndk.v32.apex" 0 0 644 "u:object_r:system_file:s0"
-            ;;
-        "33")
-            ADD_TO_WORK_DIR "dm1qxxx" "system_ext" "apex/com.android.vndk.v33.apex" 0 0 644 "u:object_r:system_file:s0"
-            ;;
         *)
-            ABORT "No APEX blob available for VNDK $TARGET_BOARD_API_LEVEL"
+            ABORT "No target firmware or prebuilt APEX available for VNDK $TARGET_BOARD_API_LEVEL"
             ;;
     esac
 }
@@ -54,5 +63,5 @@ elif [ ! -f "$SYS_EXT_DIR/apex/com.android.vndk.v$TARGET_BOARD_API_LEVEL.apex" ]
     EVAL "sed -i \"s/version>$SOURCE_BOARD_API_LEVEL/version>$TARGET_BOARD_API_LEVEL/g\" \"$SYS_EXT_DIR/etc/vintf/manifest.xml\""
 fi
 
-unset SYS_EXT_DIR
-unset -f ADD_TARGET_VNDK_APEX
+unset TARGET_FIRMWARE_PATH SYS_EXT_DIR
+unset -f TARGET_FIRMWARE_HAS_SYSTEM_EXT_FILE ADD_TARGET_VNDK_APEX

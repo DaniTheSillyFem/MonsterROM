@@ -1,7 +1,7 @@
 # Copyright (c) 2025 Salvo Giangreco
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# UN1CA debloat list
+# MonsterROM-REBORN debloat list
 # - Add entries inside the specific partition containing that file (<PARTITION>_DEBLOAT+="")
 # - DO NOT add the partition name at the start of any entry (eg. "/system/dpolicy_system")
 # - DO NOT add a slash at the start of any entry (eg. "/dpolicy_system")
@@ -77,49 +77,9 @@ system/etc/permissions/privapp-permissions-com.sec.bcservice.xml
 system/priv-app/BCService
 "
 
-# Gaming Hub
+# CIDManager
 SYSTEM_DEBLOAT+="
-system/etc/permissions/privapp-permissions-com.samsung.android.game.gamehome.xml
-system/priv-app/GameHome
-"
-
-ADD_TO_WORK_DIR "pa2qxxx" "system" \
-    "system/etc/permissions/signature-permissions-com.samsung.android.game.gamehome.xml" \
-    0 0 644 "u:object_r:system_file:s0"
-
-# Gemini shortcut
-PRODUCT_DEBLOAT+="
-app/BardShell
-"
-
-# Gmail
-PRODUCT_DEBLOAT+="
-app/Gmail2
-"
-
-# Google Assistant shortcut
-PRODUCT_DEBLOAT+="
-app/AssistantShell
-"
-
-# Google Chrome
-PRODUCT_DEBLOAT+="
-app/Chrome
-"
-
-# Google Duo
-PRODUCT_DEBLOAT+="
-app/DuoStub
-"
-
-# Google Maps
-PRODUCT_DEBLOAT+="
-app/Maps
-"
-
-# Google PAI (Play Autoinstall)
-SYSTEM_DEBLOAT+="
-system/app/PlayAutoInstallConfig
+system/priv-app/CIDManager
 "
 
 # HwModuleTest
@@ -278,11 +238,25 @@ SYSTEM_EXT_DEBLOAT+="
 framework/org.carconnectivity.android.digitalkey.rangingintent.jar
 framework/org.carconnectivity.android.digitalkey.secureelement.jar
 "
+# Chrome64
+PRODUCT_DEBLOAT+="
+app/Chrome64
+"
+
+# Duo
+PRODUCT_DEBLOAT+="
+app/Duo
+"
 
 # Search engine selector
 PRODUCT_DEBLOAT+="
 overlay/GmsConfigOverlaySearchSelector.apk
 priv-app/SearchSelector
+"
+
+# Messages
+PRODUCT_DEBLOAT+="
+priv-app/Messages
 "
 
 # SettingsHelper
