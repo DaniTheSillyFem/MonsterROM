@@ -43,6 +43,11 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "36" ]; then
     ADD_TO_WORK_DIR "r9sxxx" "vendor" "etc/midas/midas_config.json" 0 0 644 "u:object_r:vendor_configs_file:s0"
 fi
 
+if [[ "$TARGET_CODENAME" == "p3s" ]] && [ -f "$WORK_DIR/system/system/priv-app/AIOSKernelService/AIOSKernelService.apk" ]; then
+    APPLY_PATCH "system" "system/priv-app/AIOSKernelService/AIOSKernelService.apk" \
+        "$MODPATH/AIOSKernelService.apk/0001-Disable-Semantic-Search-T2T-adapter.patch"
+fi
+
 LOG "- Fixing MIDAS model detection"
 EVAL "sed -i \"s/$TARGET_CODENAME/r0s/g\" \"$WORK_DIR/vendor/etc/midas/midas_config.json\""
 

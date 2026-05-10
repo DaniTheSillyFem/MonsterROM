@@ -104,15 +104,21 @@ LOG_STEP_OUT
 
 # Semantic search
 LOG_STEP_IN "- Enabling Semantic search feature"
-if [ -f "$WORK_DIR/system/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" ]; then
-    DECODE_APK "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
-    LOG "- Enabling Semantic search feature in /system/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
-    EVAL "mkdir -p \"$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk/res/raw\""
-    EVAL "cp -a \"$MODPATH/semanticsearch/SecSettingsIntelligence.apk/res/raw/\"* \"$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk/res/raw\""
-    SEC_SETTINGS_INTELLIGENCE_RUNE="$(find "$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" -path "*/com/samsung/android/settings/intelligence/Rune.smali" | head -n 1)"
-    [ -n "$SEC_SETTINGS_INTELLIGENCE_RUNE" ] || ABORT "Missing SecSettingsIntelligence Rune.smali"
-    perl -0pi -e 's/const-string v1, ""/const-string v1, "400"/' "$SEC_SETTINGS_INTELLIGENCE_RUNE"
-    unset SEC_SETTINGS_INTELLIGENCE_RUNE
+if [[ "$TARGET_CODENAME" != "p3s" ]]; then
+    if [ -f "$WORK_DIR/system/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" ]; then
+        DECODE_APK "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
+        LOG "- Enabling Semantic search feature in /system/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
+        EVAL "mkdir -p \"$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk/res/raw\""
+        EVAL "cp -a \"$MODPATH/semanticsearch/SecSettingsIntelligence.apk/res/raw/\"* \"$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk/res/raw\""
+        SEC_SETTINGS_INTELLIGENCE_RUNE="$(find "$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" -path "*/com/samsung/android/settings/intelligence/Rune.smali" | head -n 1)"
+        [ -n "$SEC_SETTINGS_INTELLIGENCE_RUNE" ] || ABORT "Missing SecSettingsIntelligence Rune.smali"
+        perl -0pi -e 's/const-string v1, ""/const-string v1, "400"/' "$SEC_SETTINGS_INTELLIGENCE_RUNE"
+        unset SEC_SETTINGS_INTELLIGENCE_RUNE
+    fi
+    SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MSCH_SUPPORT_NLSEARCH" "TRUE"
+else
+    LOG "- Skipping Semantic search feature on p3s"
+    SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MSCH_SUPPORT_NLSEARCH" --delete
+    SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_SAMSUNG_SEARCH_SEMANTIC_SEARCH_VERSION" --delete
 fi
-SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MSCH_SUPPORT_NLSEARCH" "TRUE"
 LOG_STEP_OUT
