@@ -27,14 +27,15 @@ index 3774d65..d3665b2 100644
          req.raise_for_status()
          return req
 diff --git a/samloader/main.py b/samloader/main.py
-index 9e71759..7a7ca79 100644
+index 9e71759..ea54c2f 100644
 --- a/samloader/main.py
 +++ b/samloader/main.py
-@@ -4,9 +4,11 @@
+@@ -4,9 +4,12 @@
  import argparse
  import os
  import base64
 +import threading
++import time
  import xml.etree.ElementTree as ET
  import datetime
  from tqdm import tqdm
@@ -42,7 +43,7 @@ index 9e71759..7a7ca79 100644
  
  from . import request
  from . import crypt
-@@ -29,6 +31,7 @@ def main():
+@@ -29,6 +32,7 @@ def main():
      dload.add_argument("-R", "--resume", help="resume an unfinished download", action="store_true")
      dload.add_argument("-M", "--show-md5", help="print the expected MD5 hash of the downloaded file", action="store_true")
      dload.add_argument("-D", "--do-decrypt", help="auto-decrypt the downloaded file after downloading", action="store_true")
@@ -50,7 +51,7 @@ index 9e71759..7a7ca79 100644
      dload_out = dload.add_mutually_exclusive_group(required=True)
      dload_out.add_argument("-O", "--out-dir", help="output the server filename to the specified directory")
      dload_out.add_argument("-o", "--out-file", help="output to the specified file")
-@@ -85,6 +88,8 @@ def download(args):
+@@ -85,6 +89,8 @@ def download(args):
      else:
          print("Downloading", filename)
          log_to_file(f"Downloading: {filename}")
@@ -59,7 +60,7 @@ index 9e71759..7a7ca79 100644
      dloffset = os.stat(out).st_size if args.resume else 0
      if dloffset == size:
          print("already downloaded!")
-@@ -94,35 +99,141 @@ def download(args):
+@@ -94,35 +100,168 @@ def download(args):
              # Auto decrypt
              auto_decrypt(args, out, filename)
          return
@@ -119,6 +120,9 @@ index 9e71759..7a7ca79 100644
 +    if resume and os.path.isfile(out):
 +        _seed_parts_from_file(out, part_dir, size, chunk_size)
 +
++    part_retries = int(os.environ.get("SAMLOADER_PART_RETRIES", "5"))
++    part_retries = max(1, part_retries)
++
 +    tasks = []
 +    parts = []
 +    initial = 0
@@ -140,7 +144,7 @@ index 9e71759..7a7ca79 100644
 +    with tqdm(total=size, initial=initial, unit="B", unit_scale=True) as pbar:
 +        with ThreadPoolExecutor(max_workers=jobs) as executor:
 +            futures = [
-+                executor.submit(_download_part, client, filename, start, end, part_file, existing, pbar, lock)
++                executor.submit(_download_part, client, filename, start, end, part_file, existing, pbar, lock, part_retries)
 +                for start, end, part_file, existing in tasks
 +            ]
 +            for future in as_completed(futures):
@@ -196,17 +200,41 @@ index 9e71759..7a7ca79 100644
 +
 +    os.remove(out)
 +
-+def _download_part(client, filename, start, end, part_file, existing, pbar, lock):
-+    offset = start + existing
-+    response = client.downloadfile(filename, offset, end)
-+    if response.status_code != 206:
-+        raise Exception("server ignored ranged download request")
-+    with open(part_file, "ab" if existing else "wb") as fd:
-+        for chunk in response.iter_content(chunk_size=0x100000):
-+            if chunk:
-+                fd.write(chunk)
-+                with lock:
-+                    pbar.update(len(chunk))
++def _download_part(client, filename, start, end, part_file, existing, pbar, lock, retries):
++    expected = end - start + 1
++    attempts = 0
++
++    while True:
++        current = os.path.getsize(part_file) if os.path.isfile(part_file) else 0
++        if current == expected:
++            return
++        if current > expected:
++            raise Exception("parallel download part grew beyond its expected size: {}".format(part_file))
++
++        offset = start + current
++        response = None
++        try:
++            response = client.downloadfile(filename, offset, end)
++            if response.status_code != 206:
++                raise Exception("server ignored ranged download request")
++            with open(part_file, "ab" if current else "wb") as fd:
++                for chunk in response.iter_content(chunk_size=0x100000):
++                    if chunk:
++                        fd.write(chunk)
++                        current += len(chunk)
++                        with lock:
++                            pbar.update(len(chunk))
++            if current == expected:
++                return
++            raise Exception("ranged download ended before part was complete")
++        except Exception:
++            attempts += 1
++            if attempts >= retries:
++                raise
++            time.sleep(min(30, 2 ** (attempts - 1)))
++        finally:
++            if response is not None:
++                response.close()
  
  def imei_parser(args):
      if args.dev_imei:
