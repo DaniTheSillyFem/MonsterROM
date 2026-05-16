@@ -10,6 +10,10 @@ MATCH_TARGET_FEATURES()
     TARGET_FEATURES="$(sort <<< "$TARGET_FEATURES")"
 
     for f in $SOURCE_FEATURES; do
+        if [[ "$f" == "com.sec.feature.spen_usp_level70.xml" ]] && \
+                [ -d "$FW_DIR/$SOURCE_FIRMWARE_PATH/system/system/media/audio/pensounds" ]; then
+            continue
+        fi
         if ! grep -q "$f" <<< "$TARGET_FEATURES"; then
             DELETE_FROM_WORK_DIR "system" "system/etc/permissions/$f"
         fi
@@ -23,6 +27,7 @@ MATCH_TARGET_FEATURES()
 # ]
 
 TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$TARGET_FIRMWARE")"
+SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$SOURCE_FIRMWARE")"
 
 MATCH_TARGET_FEATURES
 
@@ -101,5 +106,5 @@ if [[ "$SOURCE_PRODUCT_API_LEVEL" =~ ^[0-9]+$ ]] && \
     LOG_STEP_OUT
 fi
 
-unset TARGET_FIRMWARE_PATH SOURCE_PRODUCT_API_LEVEL TARGET_PRODUCT_API_LEVEL
+unset TARGET_FIRMWARE_PATH SOURCE_FIRMWARE_PATH SOURCE_PRODUCT_API_LEVEL TARGET_PRODUCT_API_LEVEL
 unset -f MATCH_TARGET_FEATURES
