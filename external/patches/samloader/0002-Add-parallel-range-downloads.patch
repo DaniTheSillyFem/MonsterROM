@@ -27,7 +27,7 @@ index 3774d65..d3665b2 100644
          req.raise_for_status()
          return req
 diff --git a/samloader/main.py b/samloader/main.py
-index 9e71759..0aeee3b 100644
+index 9e71759..7a7ca79 100644
 --- a/samloader/main.py
 +++ b/samloader/main.py
 @@ -4,9 +4,11 @@
@@ -59,7 +59,7 @@ index 9e71759..0aeee3b 100644
      dloffset = os.stat(out).st_size if args.resume else 0
      if dloffset == size:
          print("already downloaded!")
-@@ -94,35 +99,102 @@ def download(args):
+@@ -94,35 +99,141 @@ def download(args):
              # Auto decrypt
              auto_decrypt(args, out, filename)
          return
@@ -67,8 +67,8 @@ index 9e71759..0aeee3b 100644
      initdownload(client, filename)
 -    r = client.downloadfile(path+filename, dloffset)
 +
-+    if args.jobs > 1 and not args.resume:
-+        downloadfile_parallel(client, path+filename, out, size, args.jobs)
++    if args.jobs > 1:
++        downloadfile_parallel(client, path+filename, out, size, args.jobs, args.resume)
 +    else:
 +        downloadfile_single(client, path+filename, out, size, dloffset, args)
 +
@@ -110,12 +110,14 @@ index 9e71759..0aeee3b 100644
 -    # Auto decrypt
 -    auto_decrypt(args, out, filename)
 +
-+def downloadfile_parallel(client, filename, out, size, jobs):
++def downloadfile_parallel(client, filename, out, size, jobs, resume=False):
 +    jobs = max(1, min(jobs, size))
 +    chunk_size = int(os.environ.get("SAMLOADER_CHUNK_SIZE", str(128 * 1024 * 1024)))
 +    chunk_size = max(0x100000, chunk_size)
 +    part_dir = out + ".parts"
 +    os.makedirs(part_dir, exist_ok=True)
++    if resume and os.path.isfile(out):
++        _seed_parts_from_file(out, part_dir, size, chunk_size)
 +
 +    tasks = []
 +    parts = []
@@ -156,6 +158,43 @@ index 9e71759..0aeee3b 100644
 +                    outf.write(chunk)
 +            os.remove(part_file)
 +    os.rmdir(part_dir)
++
++def _seed_parts_from_file(out, part_dir, size, chunk_size):
++    remaining = min(os.path.getsize(out), size)
++    if remaining <= 0:
++        return
++
++    index = 0
++    with open(out, "rb") as inf:
++        while remaining > 0:
++            expected = min(chunk_size, size - (index * chunk_size))
++            if expected <= 0:
++                break
++
++            part_file = os.path.join(part_dir, "{:06d}.part".format(index))
++            existing = os.path.getsize(part_file) if os.path.isfile(part_file) else 0
++            if existing > expected:
++                existing = 0
++
++            skipped = min(existing, remaining)
++            if skipped > 0:
++                inf.seek(skipped, os.SEEK_CUR)
++                remaining -= skipped
++
++            to_copy = min(expected - existing, remaining)
++            if to_copy > 0:
++                with open(part_file, "ab" if existing else "wb") as part:
++                    while to_copy > 0:
++                        chunk = inf.read(min(0x100000, to_copy))
++                        if not chunk:
++                            break
++                        part.write(chunk)
++                        copied = len(chunk)
++                        remaining -= copied
++                        to_copy -= copied
++            index += 1
++
++    os.remove(out)
 +
 +def _download_part(client, filename, start, end, part_file, existing, pbar, lock):
 +    offset = start + existing
