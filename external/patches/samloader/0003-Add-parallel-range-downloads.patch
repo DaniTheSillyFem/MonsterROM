@@ -1,7 +1,7 @@
-diff --git a/samloader/fusclient.py b/Documents/samloader/fusclient.py
+diff --git a/samloader/fusclient.py b/samloader/fusclient.py
 index 15a2c9b..c430ab8 100644
 --- a/samloader/fusclient.py
-+++ b/Documents/samloader/fusclient.py
++++ b/samloader/fusclient.py
 @@ -31,16 +31,19 @@ class FUSClient:
          req.raise_for_status()
          return req.text
@@ -26,10 +26,10 @@ index 15a2c9b..c430ab8 100644
 +        log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n End Byte: {end}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
          req.raise_for_status()
          return req
-diff --git a/samloader/main.py b/Documents/samloader/main.py
+diff --git a/samloader/main.py b/samloader/main.py
 index 9e71759..fc0132d 100644
 --- a/samloader/main.py
-+++ b/Documents/samloader/main.py
++++ b/samloader/main.py
 @@ -4,9 +4,12 @@
  import argparse
  import os
