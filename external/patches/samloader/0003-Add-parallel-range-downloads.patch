@@ -24,7 +24,7 @@ index 15a2c9b..e410dff 100644
                             params="file=" + filename, headers=headers, stream=True)
          log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
 diff --git a/samloader/main.py b/samloader/main.py
-index 9e71759..f85a654 100644
+index 9e71759..fc0132d 100644
 --- a/samloader/main.py
 +++ b/samloader/main.py
 @@ -4,9 +4,12 @@
@@ -52,7 +52,7 @@ index 9e71759..f85a654 100644
      else:
          print("Downloading", filename)
          log_to_file(f"Downloading: {filename}")
-+    if args.jobs < 1
++    if args.jobs < 1:
 +        raise Exception("Download jobs must be greater than zero.")
      dloffset = os.stat(out).st_size if args.resume else 0
      if dloffset == size:
