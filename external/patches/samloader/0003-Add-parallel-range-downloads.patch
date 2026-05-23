@@ -1,5 +1,5 @@
 diff --git a/samloader/fusclient.py b/samloader/fusclient.py
-index 15a2c9b..e410dff 100644
+index 15a2c9b..4e62f03 100644
 --- a/samloader/fusclient.py
 +++ b/samloader/fusclient.py
 @@ -31,14 +31,17 @@ class FUSClient:
@@ -19,7 +19,7 @@ index 15a2c9b..e410dff 100644
 +            if end is None:
 +                headers["Range"] = "bytes={}-".format(start)
 +            else:
-+                headers["Range"] = "bytes={}-".format(start, end)
++                headers["Range"] = "bytes={}-{}".format(start, end)
          req = requests.get("http://cloud-neofussvr.samsungmobile.com/NF_DownloadBinaryForMass.do",
                             params="file=" + filename, headers=headers, stream=True)
          log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
