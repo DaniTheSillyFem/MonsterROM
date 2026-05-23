@@ -1,8 +1,8 @@
-diff --git a/samloader/fusclient.py b/samloader/fusclient.py
-index 15a2c9b..4e62f03 100644
+diff --git a/samloader/fusclient.py b/Documents/samloader/fusclient.py
+index 15a2c9b..c430ab8 100644
 --- a/samloader/fusclient.py
-+++ b/samloader/fusclient.py
-@@ -31,14 +31,17 @@ class FUSClient:
++++ b/Documents/samloader/fusclient.py
+@@ -31,16 +31,19 @@ class FUSClient:
          req.raise_for_status()
          return req.text
  
@@ -22,11 +22,14 @@ index 15a2c9b..4e62f03 100644
 +                headers["Range"] = "bytes={}-{}".format(start, end)
          req = requests.get("http://cloud-neofussvr.samsungmobile.com/NF_DownloadBinaryForMass.do",
                             params="file=" + filename, headers=headers, stream=True)
-         log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
-diff --git a/samloader/main.py b/samloader/main.py
+-        log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
++        log_response(f"Status from FUSClient_DownloadFile : \nAuthorization : {authv}\n FileName : {filename}\n Start Byte: {start}\n End Byte: {end}\n FinalRequest : {req.request.url} \n Headers : \n {req.request.headers}")
+         req.raise_for_status()
+         return req
+diff --git a/samloader/main.py b/Documents/samloader/main.py
 index 9e71759..fc0132d 100644
 --- a/samloader/main.py
-+++ b/samloader/main.py
++++ b/Documents/samloader/main.py
 @@ -4,9 +4,12 @@
  import argparse
  import os
