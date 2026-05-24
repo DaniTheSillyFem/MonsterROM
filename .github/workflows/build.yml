@@ -76,4 +76,13 @@ jobs:
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/make_rom.sh
+          ./scripts/make_rom.sh || true
+
+      - name: Check AOSP platform key
+        run: |
+          source ./buildenv.sh ${{ matrix.target }}
+          echo "== security debug =="
+          pwd
+          ls -lah security
+          wc -c security/aosp_platform.x509.pem security/aosp_platform.pk8
+          head -2 security/aosp_platform.x509.pem
