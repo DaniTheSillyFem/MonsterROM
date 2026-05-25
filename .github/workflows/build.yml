@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [o1s]
+        target: [a34x]
 
     steps:
       - name: Checkout repo
@@ -76,11 +76,9 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/make_rom.sh -z
 
-      - name: Upload to PixelDrain
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+      - name: Upload to Pixeldrain
         run: |
-          ZIP_FILE=$(find out -maxdepth 1 -type f -name "*.zip" | head -n 1)
-          RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.PIXELDRAIN_API_KEY }}" -T "$ZIP_FILE" https://pixeldrain.com/api/file)
-          FILE_ID=$(echo "$RESPONSE" | jq -r '.id')
+          RESPONSE=$(curl -T "$(ls out/MonsterROM*.zip | head -1)" -u :${{ secrets.PIXELDRAIN_API_KEY }} https://pixeldrain.com/api/file)
+          FILE_ID=$(echo "$RESPONSE" | jq -r '.id'
           echo "Download link:"
           echo "https://pixeldrain.com/u/$FILE_ID"
