@@ -46,7 +46,7 @@ BUILD()
         $ROM_IS_OFFICIAL && CERT_PREFIX="unica"
 
         LOG "- Signing ${INPUT_FILE//$WORK_DIR/}"
-        EVAL "signapk \"$SRC_DIR/security/${CERT_PREFIX}_plat.x509.pem\" \"$SRC_DIR/security/${CERT_PREFIX}_plat.pk8\" \"$OUTPUT_PATH/dist/$FILE_NAME\" \"$OUTPUT_PATH/dist/temp.apk\"" || exit 1
+        EVAL "signapk \"$SRC_DIR/security/${CERT_PREFIX}_platform.x509.pem\" \"$SRC_DIR/security/${CERT_PREFIX}_platform.pk8\" \"$OUTPUT_PATH/dist/$FILE_NAME\" \"$OUTPUT_PATH/dist/temp.apk\"" || exit 1
         mv -f "$OUTPUT_PATH/dist/temp.apk" "$OUTPUT_PATH/dist/$FILE_NAME"
     else
         LOG "- Zipaligning ${INPUT_FILE//$WORK_DIR/}"
