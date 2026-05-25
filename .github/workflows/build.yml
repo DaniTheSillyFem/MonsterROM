@@ -74,13 +74,13 @@ jobs:
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/make_rom.sh || true
+          ./scripts/make_rom.sh -z
 
-      - name: Check AOSP platform key
+      - name: Upload to PixelDrain
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         run: |
-          source ./buildenv.sh ${{ matrix.target }}
-          echo "== security debug =="
-          pwd
-          ls -lah security
-          wc -c security/aosp_platform.x509.pem security/aosp_platform.pk8
-          head -2 security/aosp_platform.x509.pem
+          ZIP_FILE=$(find out -maxdepth 1 -type f -name "*.zip" | head -n 1)
+          RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.PIXELDRAIN_API_KEY }}" -T "$ZIP_FILE" https://pixeldrain.com/api/file)
+          FILE_ID=$(echo "$RESPONSE" | jq -r '.id')
+          echo "Download link:"
+          echo "https://pixeldrain.com/u/$FILE_ID"
