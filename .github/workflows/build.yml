@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [a34x]
+        target: [o1q]
 
     steps:
       - name: Checkout repo
@@ -58,22 +58,22 @@ jobs:
 
       - name: Build dependencies
         run: |
-          source ./buildenv.sh ${{ matrix.target }}
+          source ./buildenv.sh --debug ${{ matrix.target }}
           ./scripts/build_dependencies.sh
 
       - name: Download stock firmwares
         run: |
-          source ./buildenv.sh ${{ matrix.target }}
+          source ./buildenv.sh --debug ${{ matrix.target }}
           ./scripts/download_fw.sh
 
       - name: Extract stock firmwares
         run: |
-          source ./buildenv.sh ${{ matrix.target }}
+          source ./buildenv.sh --debug ${{ matrix.target }}
           ./scripts/extract_fw.sh
 
       - name: Build ROM
         run: |
-          source ./buildenv.sh ${{ matrix.target }}
+          source ./buildenv.sh --debug ${{ matrix.target }}
           ./scripts/make_rom.sh -z
 
       - name: Upload to Pixeldrain
